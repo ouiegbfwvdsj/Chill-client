@@ -8,6 +8,9 @@ import net.minecraft.SharedConstants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.minecraft.client.MinecraftClient; // ★★★ これをインポート ★★★
+import com.google.common.eventbus.EventBus; // ★★★ これをインポート ★★★
+
 public class OyVey implements ModInitializer, ClientModInitializer {
     public static final String NAME = "Chill";
     public static final String VERSION = "v0.0.4-nightly"; //+ SharedConstants.getGameVersion().getName();
@@ -27,6 +30,10 @@ public class OyVey implements ModInitializer, ClientModInitializer {
     public static ModuleManager moduleManager;
     public static ConfigManager configManager;
 
+    // ★★★ 不足していた mc と EVENT_BUS フィールドを追加 ★★★
+    public static MinecraftClient mc;
+    public static EventBus EVENT_BUS; // final にせず、onInitializeClient で初期化します
+
     @Override
     public void onInitialize() {
         eventManager = new EventManager();
@@ -45,6 +52,10 @@ public class OyVey implements ModInitializer, ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // ★★★ mc と EVENT_BUS の初期化を追加 ★★★
+        mc = MinecraftClient.getInstance(); // MinecraftClient のインスタンスを取得
+        EVENT_BUS = new EventBus(); // EventBus の新しいインスタンスを作成
+
         eventManager.init();
         moduleManager.init();
 

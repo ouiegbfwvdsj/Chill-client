@@ -4,15 +4,17 @@ import me.alpha432.oyvey.event.Stage;
 import me.alpha432.oyvey.event.impl.UpdateEvent;
 import me.alpha432.oyvey.event.impl.UpdateWalkingPlayerEvent;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.damage.DamageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
+import me.alpha432.oyvey.OyVey;
 import static me.alpha432.oyvey.util.traits.Util.EVENT_BUS;
 
 @Mixin(ClientPlayerEntity.class)
 public class MixinClientPlayerEntity {
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void tickHook(CallbackInfo ci) {
         EVENT_BUS.post(new UpdateEvent());
@@ -26,5 +28,17 @@ public class MixinClientPlayerEntity {
     @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendMovementPackets()V", shift = At.Shift.AFTER))
     private void tickHook3(CallbackInfo ci) {
         EVENT_BUS.post(new UpdateWalkingPlayerEvent(Stage.POST));
+    }
+
+    // 死亡検知のためのより適切なフック
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void onTick(CallbackInfo ci) {
+        ClientPlayerEntity player = (ClientPlayerEntity) (Object) this;
+
+        // プレイヤーが死亡状態かチェック
+        if (player.isDead() && OyVey.moduleManager != null) {
+            // 一度だけ実行されるようにフラグを使用することを推奨
+            OyVey.moduleManager.saveModulesBeforeDeath();
+        }
     }
 }

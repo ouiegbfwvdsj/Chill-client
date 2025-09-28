@@ -14,24 +14,35 @@ import me.alpha432.oyvey.util.traits.Jsonable;
 import me.alpha432.oyvey.util.traits.Util;
 // Fly モジュールのインポート
 import me.alpha432.oyvey.features.modules.movement.Fly;
+// ★★★ RespawnModule のインポートを追加 ★★★
+import me.alpha432.oyvey.features.modules.client.RespawnModule;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import me.alpha432.oyvey.features.modules.movement.Fly;
+import me.alpha432.oyvey.features.modules.movement.NoFall; // ★★★ NoFall のインポートを確認 ★★★
 
 public class ModuleManager implements Jsonable, Util {
     public List<Module> modules = new ArrayList<>();
     public List<Module> sortedModules = new ArrayList<>();
     public List<String> sortedModulesABC = new ArrayList<>();
 
+    // ★★★ 状態を保存するリストを追加 ★★★
+    private List<String> modulesToRestore = new ArrayList<>();
+
     public void init() {
         modules.add(new HudModule());
         modules.add(new ClickGui());
         modules.add(new FastPlace());
         modules.add(new BlockHighlight());
-        // ★★★ Fly モジュールの登録行を追加しました ★★★
         modules.add(new Fly());
+        // ★★★ RespawnModule の登録を追加 ★★★
+        modules.add(new RespawnModule());
+
+        // ★★★ NoFall モジュールの登録を追加 ★★★
+        modules.add(new NoFall());
     }
 
     public Module getModuleByName(String name) {
@@ -178,6 +189,34 @@ public class ModuleManager implements Jsonable, Util {
                 module.toggle();
             }
         });
+    }
+
+    // ★★★ 死亡前のモジュール状態を保存するメソッドを追加 ★★★
+    /**
+     * プレイヤー死亡時に、有効なモジュールの状態を保存します。
+     */
+    public void saveModulesBeforeDeath() {
+        this.modulesToRestore.clear();
+        for (Module module : this.modules) {
+            // HUDModuleとClickGuiなど、リセットしたくないモジュールは除外
+            if (module.isEnabled() && !(module instanceof HudModule) && !(module instanceof ClickGui)) {
+                this.modulesToRestore.add(module.getName());
+            }
+        }
+    }
+
+    // ★★★ リスポーン後にモジュール状態を復元するメソッドを追加 ★★★
+    /**
+     * リスポーン後に、保存されたモジュールを再び有効化します。
+     */
+    public void restoreModulesAfterDeath() {
+        for (String moduleName : this.modulesToRestore) {
+            Module module = this.getModuleByName(moduleName);
+            if (module != null) {
+                module.enable(); // モジュールを再度有効化
+            }
+        }
+        this.modulesToRestore.clear(); // 復元後はリストをクリア
     }
 
     @Override

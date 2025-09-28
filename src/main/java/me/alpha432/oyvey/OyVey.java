@@ -9,8 +9,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class OyVey implements ModInitializer, ClientModInitializer {
-    public static final String NAME = "OyVey";
-    public static final String VERSION = "0.0.3 - " + SharedConstants.getGameVersion().getName();
+    public static final String NAME = "Chill";
+    public static final String VERSION = "v0.0.4-nightly"; //+ SharedConstants.getGameVersion().getName();
 
     public static float TIMER = 1f;
 

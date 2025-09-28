@@ -8,13 +8,7 @@ import me.alpha432.oyvey.features.Feature;
 import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.modules.client.ClickGui;
 import me.alpha432.oyvey.features.modules.client.HudModule;
-import me.alpha432.oyvey.features.modules.combat.Criticals;
-import me.alpha432.oyvey.features.modules.misc.MCF;
-import me.alpha432.oyvey.features.modules.movement.ReverseStep;
-import me.alpha432.oyvey.features.modules.movement.Step;
 import me.alpha432.oyvey.features.modules.player.FastPlace;
-import me.alpha432.oyvey.features.modules.player.NoFall;
-import me.alpha432.oyvey.features.modules.player.Velocity;
 import me.alpha432.oyvey.features.modules.render.BlockHighlight;
 import me.alpha432.oyvey.util.traits.Jsonable;
 import me.alpha432.oyvey.util.traits.Util;
@@ -33,14 +27,8 @@ public class ModuleManager implements Jsonable, Util {
     public void init() {
         modules.add(new HudModule());
         modules.add(new ClickGui());
-        modules.add(new Criticals());
-        modules.add(new MCF());
-        modules.add(new Step());
-        modules.add(new ReverseStep());
         modules.add(new FastPlace());
-        modules.add(new Velocity());
         modules.add(new BlockHighlight());
-        modules.add(new NoFall());
     }
 
     public Module getModuleByName(String name) {

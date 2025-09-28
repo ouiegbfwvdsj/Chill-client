@@ -12,7 +12,8 @@ import me.alpha432.oyvey.features.modules.player.FastPlace;
 import me.alpha432.oyvey.features.modules.render.BlockHighlight;
 import me.alpha432.oyvey.util.traits.Jsonable;
 import me.alpha432.oyvey.util.traits.Util;
-
+// Fly モジュールのインポート
+import me.alpha432.oyvey.features.modules.movement.Fly;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -29,6 +30,8 @@ public class ModuleManager implements Jsonable, Util {
         modules.add(new ClickGui());
         modules.add(new FastPlace());
         modules.add(new BlockHighlight());
+        // ★★★ Fly モジュールの登録行を追加しました ★★★
+        modules.add(new Fly());
     }
 
     public Module getModuleByName(String name) {

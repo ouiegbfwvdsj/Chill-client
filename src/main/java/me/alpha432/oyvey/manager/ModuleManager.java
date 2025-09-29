@@ -1,3 +1,4 @@
+
 package me.alpha432.oyvey.manager;
 
 import com.google.gson.JsonElement;
@@ -14,14 +15,15 @@ import me.alpha432.oyvey.util.traits.Jsonable;
 import me.alpha432.oyvey.util.traits.Util;
 // Fly モジュールのインポート
 import me.alpha432.oyvey.features.modules.movement.Fly;
-// ★★★ RespawnModule のインポートを追加 ★★★
+// ★★★ RespawnModule のインポートを確認 ★★★
 import me.alpha432.oyvey.features.modules.client.RespawnModule;
+// ★★★ KillAura のインポートを追加 ★★★
+import me.alpha432.oyvey.features.modules.movement.KillAura;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import me.alpha432.oyvey.features.modules.movement.Fly;
 import me.alpha432.oyvey.features.modules.movement.NoFall; // ★★★ NoFall のインポートを確認 ★★★
 
 public class ModuleManager implements Jsonable, Util {
@@ -38,11 +40,14 @@ public class ModuleManager implements Jsonable, Util {
         modules.add(new FastPlace());
         modules.add(new BlockHighlight());
         modules.add(new Fly());
-        // ★★★ RespawnModule の登録を追加 ★★★
+        // ★★★ RespawnModule の登録を確認 ★★★
         modules.add(new RespawnModule());
 
-        // ★★★ NoFall モジュールの登録を追加 ★★★
+        // ★★★ NoFall モジュールの登録を確認 ★★★
         modules.add(new NoFall());
+        // modules.add(new Freecam()); // Freecam を削除/コメントアウトした場合
+        // ★★★ KillAura の登録を追加 ★★★
+        modules.add(new KillAura());
     }
 
     public Module getModuleByName(String name) {

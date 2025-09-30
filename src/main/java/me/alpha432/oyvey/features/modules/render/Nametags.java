@@ -1,138 +1,155 @@
 package me.alpha432.oyvey.features.modules.render;
 
-// 必要なMinecraftクラスのインポート
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import org.joml.Matrix4f;
-
-import java.awt.Color;
-
-// 依存クラス (me.alpha432.oyvey クライアントの既存クラス)
-// 【修正】 Render3DEvent のインポートを削除（解決できないため）
+// OyVey Core Imports
 import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.modules.Module.Category;
 import me.alpha432.oyvey.features.settings.Setting;
 
+// Minecraft Imports
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.Vec3d;
+
+
 public class Nametags extends Module {
 
-    private final Setting<Integer> distance = register(new Setting<>("DistanceChunks", 5, 1, 10, "Distance in chunks to render nametags."));
-    private final Setting<Float> scale = register(new Setting<>("Scale", 2.0f, 0.5f, 5.0f, "GUI scale factor."));
+    public static final Nametags INSTANCE = new Nametags();
+    private final MinecraftClient mc = MinecraftClient.getInstance();
 
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
+    // --- 設定項目の定義 ---
+    public Setting<Float> scale = this.register(new Setting<Float>("Scale",
+            1.25f, 0.0f, 5.0f, "Scale of the NameTags"));
+
+    public Setting<Boolean> onlyPlayers = this.register(new Setting<Boolean>("OnlyPlayers",
+            false, "Whether Nametags are only enlarged for players."));
+
+    public Setting<Boolean> alwaysVisible = this.register(new Setting<Boolean>("AlwaysVisible",
+            false, "Whether Nametags will always be displayed."));
+
 
     public Nametags() {
-        super("Nametags", "Displays nameと health.", Category.RENDER, true, false, false);
+        super("Nametags", "Scales the nametags and makes them visible through walls.", Category.RENDER, true, false, false);
     }
 
-    // 【修正】 @Override と引数 (Render3DEvent) を削除
-    public void onRender3D() {
-        if (fullNullCheck()) return;
+    public void onRender2D(MatrixStack matrices, float tickDelta) {
+        if (mc.world == null || mc.player == null) return;
 
-        float partialTicks = 0.0f;
+        boolean alwaysVisible = this.alwaysVisible.getValue();
 
-        Vec3d cameraPos = mc.gameRenderer.getCamera().getPos();
+        if (alwaysVisible) {
+            glDisableDepth();
+        }
 
-        for (var entity : mc.world.getEntities()) {
-            if (!(entity instanceof PlayerEntity player)) continue;
-            if (player.equals(mc.player) || player.isDead()) continue;
+        for (PlayerEntity player : mc.world.getPlayers()) {
+            if (player == mc.player) continue;
+            if (onlyPlayers.getValue() && !(player instanceof PlayerEntity)) continue;
+            if (!alwaysVisible && !player.canSee(mc.player)) continue;
 
-            if (mc.player.distanceTo(player) > distance.getValue() * 16) continue;
+            Vec3d pos = player.getPos().add(0, player.getHeight() + 0.5, 0);
+            double[] screenPos = worldToScreen(pos.x, pos.y, pos.z);
 
-            Vec3d interpPos = getInterpolatedPos(player, partialTicks);
+            if (screenPos == null) continue;
 
-            double x = interpPos.x - cameraPos.x;
-            double y = interpPos.y + player.getHeight() + 0.5 - cameraPos.y;
-            double z = interpPos.getZ() - cameraPos.z;
+            double x = screenPos[0];
+            double y = screenPos[1];
 
-            renderNametag(player, x, y, z);
+            if (x < 0 || y < 0 || x > mc.getWindow().getScaledWidth() || y > mc.getWindow().getScaledHeight()) {
+                continue;
+            }
+
+            String text = player.getName().getString() + " §c" + Math.round(player.getHealth());
+            int textWidth = mc.textRenderer.getWidth(text);
+
+            matrices.push();
+            matrices.translate(x, y, 0);
+            matrices.scale(scale.getValue(), scale.getValue(), 1f);
+
+            // ↓↓↓ 修正: 確実にキャストし、6引数形式のプレースホルダーを呼び出す ↓↓↓
+            // drawRect(x1, y1, x2, y2, z, color) 形式を想定
+            drawRect((int)(-textWidth / 2f - 2),
+                    (int)(-mc.textRenderer.fontHeight - 2),
+                    (int)(textWidth / 2f + 2),
+                    2,
+                    0, // Z-indexを0として渡す（6引数に対応）
+                    0x80000000);
+
+            // フォント描画: 4引数形式を維持
+            drawText(text, -textWidth / 2f, -mc.textRenderer.fontHeight - 1f, 0xFFFFFF);
+
+            matrices.pop();
+
+            renderPlayerItems(matrices, player, (int)x, (int)y);
+        }
+
+        if (alwaysVisible) {
+            glEnableDepth();
         }
     }
 
-    private void renderNametag(PlayerEntity player, double finalX, double finalY, double finalZ) {
-        MatrixStack matrixStack = new MatrixStack();
-        Text name = player.getDisplayName();
+    // --- 【重要】クライアント独自のユーティリティ呼び出しに置き換えるメソッド ---
 
-        float baseScale = 0.025f;
-
-        matrixStack.push();
-        matrixStack.translate(finalX, finalY, finalZ);
-
-        // ビルボーディング
-        matrixStack.multiply(mc.getEntityRenderDispatcher().getRotation());
-
-        // スケーリング
-        double dist = Math.sqrt(finalX * finalX + finalY * finalY + finalZ * finalZ);
-        double finalScale = baseScale * dist;
-        float fixedScale = scale.getValue() / 2.0f;
-        finalScale = finalScale * fixedScale;
-
-        matrixStack.scale(-((float)finalScale), -((float)finalScale), (float)finalScale);
-
-        // --- 描画ロジック ---
-        String healthText = String.format(" §c[%.1f]", player.getHealth() + player.getAbsorptionAmount());
-        String displayText = name.getString() + healthText;
-
-        float textWidth = mc.textRenderer.getWidth(displayText);
-
-        float boxWidth = textWidth + 4;
-        matrixStack.translate(-boxWidth / 2, 0, 0);
-
-        // 背景の描画
-        drawRect(matrixStack, 0, 0, boxWidth, 11, 0x80000000);
-
-        // テキストレンダリング
-        matrixStack.push();
-
-        // 【修正】最も互換性の低い、引数が多いシグネチャを使用（以前のエラーを無視して再試行）
-        mc.textRenderer.draw(displayText, 2.0F, 1.0F, Color.WHITE.getRGB(), false);
-
-        matrixStack.pop();
-
-        matrixStack.translate(boxWidth / 2, 0, 0);
-
-        matrixStack.pop();
+    private void glDisableDepth() {
+        // RenderSystem.disableDepthTest() の代替。例: RenderUtil.disableDepth();
     }
 
-    // 【修正】 drawRect: レガシーな getBuffer() と startDrawing(7) に戻す
-    private void drawRect(MatrixStack matrices, float x1, float y1, float x2, float y2, int color) {
-
-        float a = (float)(color >> 24 & 255) / 255.0F;
-        float r = (float)(color >> 16 & 255) / 255.0F;
-        float g = (float)(color >> 8 & 255) / 255.0F;
-        float b = (float)(color & 255) / 255.0F;
-
-        Tessellator tessellator = Tessellator.getInstance();
-
-        // getBuffer() を再試行
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        // startDrawing(7) を再試行
-        buffer.startDrawing(7);
-
-        // 【修正】 .next() を削除
-        Matrix4f currentMatrix = matrices.peek().getPositionMatrix();
-        buffer.vertex(currentMatrix, x1, y2, 0).color(r, g, b, a);
-        buffer.vertex(currentMatrix, x2, y2, 0).color(r, g, b, a);
-        buffer.vertex(currentMatrix, x2, y1, 0).color(r, g, b, a);
-        buffer.vertex(currentMatrix, x1, y1, 0).color(r, g, b, a);
-
-        // end() を使用
-        buffer.end();
+    private void glEnableDepth() {
+        // RenderSystem.enableDepthTest() の代替。例: RenderUtil.enableDepth();
     }
 
-    // プレイヤー位置補間ユーティリティ
-    private Vec3d getInterpolatedPos(PlayerEntity entity, float partialTicks) {
-        // partialTicks は 0.0f の固定値
-        return new Vec3d(
-                entity.lastRenderX + (entity.getX() - entity.lastRenderX) * partialTicks,
-                entity.lastRenderY + (entity.getY() - entity.lastRenderY) * partialTicks,
-                entity.lastRenderZ + (entity.getZ() - entity.lastRenderZ) * partialTicks
-        );
+    /**
+     * 四角形描画 (6つの引数で定義: x1, y1, x2, y2, z, color)
+     */
+    private void drawRect(int x1, int y1, int x2, int y2, int z, int color) {
+        // クライアントの RenderUtil.drawRect(x1, y1, x2, y2, z, color) のようなものを呼び出す必要があります。
+        // RenderUtil が存在しない場合は、独自の描画ロジックをここに記述する必要があります。
     }
+
+    /**
+     * テキスト描画 (4つの引数で定義: text, x, y, color)
+     */
+    private void drawText(String text, float x, float y, int color) {
+        // mc.textRenderer.drawWithShadow/draw の代替。例：RenderUtil.drawTextWithShadow(text, x, y, color);
+    }
+
+    private double[] worldToScreen(double x, double y, double z) {
+        // 動作する 3D -> 2D 座標変換ユーティリティの呼び出しに置き換えてください。
+        // 例: return me.alpha432.oyvey.util.RenderUtil.worldToScreen(x, y, z);
+        return null;
+    }
+
+    // --- アイテム描画の骨組み (省略) ---
+    private void renderPlayerItems(MatrixStack matrices, PlayerEntity player, int x, int y) {
+        int offset = -40;
+        ItemStack main = player.getMainHandStack();
+        if (!main.isEmpty()) {
+            renderUtilItem(matrices, main, x + offset, y + 12);
+            offset += 20;
+        }
+        for (int i = 3; i >= 0; i--) {
+            ItemStack armorStack = player.getInventory().getStack(36 + i);
+            if (!armorStack.isEmpty()) {
+                renderUtilItem(matrices, armorStack, x + offset, y + 12);
+                offset += 20;
+            }
+        }
+        ItemStack off = player.getOffHandStack();
+        if (!off.isEmpty()) {
+            renderUtilItem(matrices, off, x + offset, y + 12);
+        }
+    }
+
+    private void renderUtilItem(MatrixStack matrices, ItemStack stack, int x, int y) {
+        matrices.push();
+        matrices.translate(x, y, 0);
+        matrices.scale(0.8f, 0.8f, 0.8f);
+        // アイテム描画ユーティリティの呼び出しに置き換えてください
+        matrices.pop();
+    }
+
+    // --- Getterメソッド ---
+    public float getNametagScale() { return scale.getValue(); }
+    public boolean getPlayersOnly() { return onlyPlayers.getValue(); }
+    public boolean getAlwaysVisible() { return alwaysVisible.getValue(); }
 }

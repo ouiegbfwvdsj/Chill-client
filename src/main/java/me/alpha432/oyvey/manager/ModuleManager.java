@@ -1,10 +1,7 @@
-
 package me.alpha432.oyvey.manager;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import me.alpha432.oyvey.event.impl.Render2DEvent;
-import me.alpha432.oyvey.event.impl.Render3DEvent;
+// OyVey Core Imports
+import me.alpha432.oyvey.OyVey;
 import me.alpha432.oyvey.features.Feature;
 import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.modules.client.ClickGui;
@@ -13,25 +10,32 @@ import me.alpha432.oyvey.features.modules.player.FastPlace;
 import me.alpha432.oyvey.features.modules.render.BlockHighlight;
 import me.alpha432.oyvey.util.traits.Jsonable;
 import me.alpha432.oyvey.util.traits.Util;
-// Fly モジュールのインポート
+
+// Module Imports
 import me.alpha432.oyvey.features.modules.movement.Fly;
-// ★★★ RespawnModule のインポートを確認 ★★★
 import me.alpha432.oyvey.features.modules.client.RespawnModule;
-// ★★★ KillAura のインポートを追加 ★★★
+import me.alpha432.oyvey.features.modules.movement.NoFall;
+import me.alpha432.oyvey.features.modules.render.Nametags;
+// ↓↓↓ 修正: KillAura を movement パッケージからインポート ↓↓↓
 import me.alpha432.oyvey.features.modules.movement.KillAura;
+// ↑↑↑ 修正 ↑↑↑
+
+// ユーティリティインポート
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import me.alpha432.oyvey.event.impl.Render2DEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import me.alpha432.oyvey.features.modules.movement.NoFall; // ★★★ NoFall のインポートを確認 ★★★
+
 
 public class ModuleManager implements Jsonable, Util {
     public List<Module> modules = new ArrayList<>();
     public List<Module> sortedModules = new ArrayList<>();
     public List<String> sortedModulesABC = new ArrayList<>();
 
-    // ★★★ 状態を保存するリストを追加 ★★★
     private List<String> modulesToRestore = new ArrayList<>();
 
     public void init() {
@@ -40,14 +44,11 @@ public class ModuleManager implements Jsonable, Util {
         modules.add(new FastPlace());
         modules.add(new BlockHighlight());
         modules.add(new Fly());
-        // ★★★ RespawnModule の登録を確認 ★★★
         modules.add(new RespawnModule());
-
-        // ★★★ NoFall モジュールの登録を確認 ★★★
         modules.add(new NoFall());
-        // modules.add(new Freecam()); // Freecam を削除/コメントアウトした場合
-        // ★★★ KillAura の登録を追加 ★★★
-        modules.add(new KillAura());
+        modules.add(new KillAura()); // KillAura の登録
+
+        modules.add(new Nametags()); // Nametags の登録
     }
 
     public Module getModuleByName(String name) {
@@ -65,6 +66,8 @@ public class ModuleManager implements Jsonable, Util {
         }
         return null;
     }
+
+    // ... (引数を持たないメソッドは省略) ...
 
     public void enableModule(Class<Module> clazz) {
         Module module = this.getModuleByClass(clazz);
@@ -145,7 +148,7 @@ public class ModuleManager implements Jsonable, Util {
     }
 
     public void onLoad() {
-        this.modules.stream().filter(Module::listening).forEach(EVENT_BUS::register);
+        this.modules.stream().filter(Module::listening).forEach(OyVey.EVENT_BUS::register);
         this.modules.forEach(Module::onLoad);
     }
 
@@ -161,9 +164,6 @@ public class ModuleManager implements Jsonable, Util {
         this.modules.stream().filter(Feature::isEnabled).forEach(module -> module.onRender2D(event));
     }
 
-    public void onRender3D(Render3DEvent event) {
-        this.modules.stream().filter(Feature::isEnabled).forEach(module -> module.onRender3D(event));
-    }
 
     public void sortModules(boolean reverse) {
         this.sortedModules = this.getEnabledModules().stream().filter(Module::isDrawn)
@@ -177,7 +177,7 @@ public class ModuleManager implements Jsonable, Util {
     }
 
     public void onUnload() {
-        this.modules.forEach(EVENT_BUS::unregister);
+        this.modules.forEach(OyVey.EVENT_BUS::unregister);
         this.modules.forEach(Module::onUnload);
     }
 
@@ -196,32 +196,24 @@ public class ModuleManager implements Jsonable, Util {
         });
     }
 
-    // ★★★ 死亡前のモジュール状態を保存するメソッドを追加 ★★★
-    /**
-     * プレイヤー死亡時に、有効なモジュールの状態を保存します。
-     */
     public void saveModulesBeforeDeath() {
         this.modulesToRestore.clear();
         for (Module module : this.modules) {
-            // HUDModuleとClickGuiなど、リセットしたくないモジュールは除外
-            if (module.isEnabled() && !(module instanceof HudModule) && !(module instanceof ClickGui)) {
+            // RespawnModule はリスポーン機能を制御するため、状態を保存しないように除外
+            if (module.isEnabled() && !(module instanceof HudModule) && !(module instanceof ClickGui) && !(module instanceof RespawnModule)) {
                 this.modulesToRestore.add(module.getName());
             }
         }
     }
 
-    // ★★★ リスポーン後にモジュール状態を復元するメソッドを追加 ★★★
-    /**
-     * リスポーン後に、保存されたモジュールを再び有効化します。
-     */
     public void restoreModulesAfterDeath() {
         for (String moduleName : this.modulesToRestore) {
             Module module = this.getModuleByName(moduleName);
             if (module != null) {
-                module.enable(); // モジュールを再度有効化
+                module.enable();
             }
         }
-        this.modulesToRestore.clear(); // 復元後はリストをクリア
+        this.modulesToRestore.clear();
     }
 
     @Override

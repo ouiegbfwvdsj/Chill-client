@@ -242,4 +242,3 @@ public class ModuleManager implements Jsonable, Util {
         return "modules.json";
     }
 }
-

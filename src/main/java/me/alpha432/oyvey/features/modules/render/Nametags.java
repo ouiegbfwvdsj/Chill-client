@@ -1,36 +1,38 @@
 package me.alpha432.oyvey.features.modules.render;
 
-// 必要なMinecraftクラスのインポート
+// 1.21.5で必要なインポートをすべて含む
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.render.VertexFormat; // これが正しく解決されることを期待
+
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import org.joml.Matrix4f;
 
 import java.awt.Color;
 
-// 依存クラス (me.alpha432.oyvey クライアントの既存クラス)
-// 【修正】 Render3DEvent のインポートを削除（解決できないため）
+// 依存クラス (あなたのクライアントの既存クラス)
 import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.modules.Module.Category;
 import me.alpha432.oyvey.features.settings.Setting;
 
 public class Nametags extends Module {
 
-    private final Setting<Integer> distance = register(new Setting<>("DistanceChunks", 5, 1, 10, "Distance in chunks to render nametags."));
-    private final Setting<Float> scale = register(new Setting<>("Scale", 2.0f, 0.5f, 5.0f, "GUI scale factor."));
+    public Setting<Integer> distance = register(new Setting("DistanceChunks", 5, 1, 10));
+    public Setting<Float> scale = register(new Setting("Scale", 2.0f, 0.5f, 5.0f));
 
     private static final MinecraftClient mc = MinecraftClient.getInstance();
 
     public Nametags() {
-        super("Nametags", "Displays nameと health.", Category.RENDER, true, false, false);
+        super("Nametags", "Displays name and health.", Category.RENDER, true, false, false);
     }
 
-    // 【修正】 @Override と引数 (Render3DEvent) を削除
     public void onRender3D() {
         if (fullNullCheck()) return;
 
@@ -46,9 +48,9 @@ public class Nametags extends Module {
 
             Vec3d interpPos = getInterpolatedPos(player, partialTicks);
 
-            double x = interpPos.x - cameraPos.x;
-            double y = interpPos.y + player.getHeight() + 0.5 - cameraPos.y;
-            double z = interpPos.getZ() - cameraPos.z;
+            double x = interpPos.getX() - cameraPos.getX();
+            double y = interpPos.getY() + player.getHeight() + 0.5 - cameraPos.getY();
+            double z = interpPos.getZ() - cameraPos.getZ();
 
             renderNametag(player, x, y, z);
         }
@@ -66,7 +68,7 @@ public class Nametags extends Module {
         // ビルボーディング
         matrixStack.multiply(mc.getEntityRenderDispatcher().getRotation());
 
-        // スケーリング
+        // スケーリングの調整
         double dist = Math.sqrt(finalX * finalX + finalY * finalY + finalZ * finalZ);
         double finalScale = baseScale * dist;
         float fixedScale = scale.getValue() / 2.0f;
@@ -79,8 +81,8 @@ public class Nametags extends Module {
         String displayText = name.getString() + healthText;
 
         float textWidth = mc.textRenderer.getWidth(displayText);
-
         float boxWidth = textWidth + 4;
+
         matrixStack.translate(-boxWidth / 2, 0, 0);
 
         // 背景の描画
@@ -88,47 +90,42 @@ public class Nametags extends Module {
 
         // テキストレンダリング
         matrixStack.push();
-
-        // 【修正】最も互換性の低い、引数が多いシグネチャを使用（以前のエラーを無視して再試行）
-        mc.textRenderer.draw(displayText, 2.0F, 1.0F, Color.WHITE.getRGB(), false);
-
+        // 1.21.5標準のTextRenderer.draw()を使用
+        mc.textRenderer.draw(matrixStack, Text.of(displayText), 2.0F, 1.0F, Color.WHITE.getRGB());
         matrixStack.pop();
-
-        matrixStack.translate(boxWidth / 2, 0, 0);
 
         matrixStack.pop();
     }
 
-    // 【修正】 drawRect: レガシーな getBuffer() と startDrawing(7) に戻す
+    // 1.21.5標準の矩形描画メソッド
     private void drawRect(MatrixStack matrices, float x1, float y1, float x2, float y2, int color) {
+
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 
         float a = (float)(color >> 24 & 255) / 255.0F;
         float r = (float)(color >> 16 & 255) / 255.0F;
         float g = (float)(color >> 8 & 255) / 255.0F;
         float b = (float)(color & 255) / 255.0F;
 
-        Tessellator tessellator = Tessellator.getInstance();
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
 
-        // getBuffer() を再試行
-        BufferBuilder buffer = tessellator.getBuffer();
+        BufferBuilder buffer = Tessellator.getInstance().getBuffer();
 
-        // startDrawing(7) を再試行
-        buffer.startDrawing(7);
+        // VertexFormatとVertexFormatsを使用
+        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
 
-        // 【修正】 .next() を削除
-        Matrix4f currentMatrix = matrices.peek().getPositionMatrix();
-        buffer.vertex(currentMatrix, x1, y2, 0).color(r, g, b, a);
-        buffer.vertex(currentMatrix, x2, y2, 0).color(r, g, b, a);
-        buffer.vertex(currentMatrix, x2, y1, 0).color(r, g, b, a);
-        buffer.vertex(currentMatrix, x1, y1, 0).color(r, g, b, a);
+        // 頂点の定義
+        buffer.vertex(matrix, x1, y2, 0).color(r, g, b, a).next();
+        buffer.vertex(matrix, x2, y2, 0).color(r, g, b, a).next();
+        buffer.vertex(matrix, x2, y1, 0).color(r, g, b, a).next();
+        buffer.vertex(matrix, x1, y1, 0).color(r, g, b, a).next();
 
-        // end() を使用
+        // 描画の実行
         buffer.end();
+        Tessellator.getInstance().draw();
     }
 
-    // プレイヤー位置補間ユーティリティ
     private Vec3d getInterpolatedPos(PlayerEntity entity, float partialTicks) {
-        // partialTicks は 0.0f の固定値
         return new Vec3d(
                 entity.lastRenderX + (entity.getX() - entity.lastRenderX) * partialTicks,
                 entity.lastRenderY + (entity.getY() - entity.lastRenderY) * partialTicks,

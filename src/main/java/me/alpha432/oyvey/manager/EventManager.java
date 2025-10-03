@@ -10,6 +10,9 @@ import me.alpha432.oyvey.util.models.Timer;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
 import net.minecraft.util.Formatting;
+import me.alpha432.oyvey.features.modules.Module;
+
+//import static com.sun.jna.platform.win32.Kernel32Util.getModules;
 
 public class EventManager extends Feature {
     private final Timer logoutTimer = new Timer();
@@ -72,10 +75,27 @@ public class EventManager extends Feature {
             OyVey.serverManager.update();
     }
 
-    @Subscribe
-    public void onWorldRender(Render3DEvent event) {
-        OyVey.moduleManager.onRender3D(event);
+    public void onRender3D(me.alpha432.oyvey.event.impl.Render3DEvent event) {
+        // 解決策: ModuleManagerが直接フィールドを持たない場合を想定し、
+        // 外部から getFeatures() を呼び出す形に修正
+        // getFeatures() が解決できないため、getModules() を試す
+        for (me.alpha432.oyvey.features.Feature feature : OyVey.moduleManager.getFeatures()) {
+            // Feature が Module のインスタンスであることを確認
+            if (feature instanceof me.alpha432.oyvey.features.modules.Module) {
+                me.alpha432.oyvey.features.modules.Module module = (me.alpha432.oyvey.features.modules.Module) feature;
+
+                if (module.isOn()) {
+                    module.onRender3D(event);
+                }
+            }
+        }
     }
+
+
+    //@Subscribe
+    //public void onWorldRender(Render3DEvent event) {
+    //    OyVey.moduleManager.onRender3D(event);
+    //}
 
     @Subscribe
     public void onRenderGameOverlayEvent(Render2DEvent event) {

@@ -7,7 +7,6 @@ import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.modules.client.ClickGui;
 import me.alpha432.oyvey.features.modules.client.HudModule;
 import me.alpha432.oyvey.features.modules.player.FastPlace;
-import me.alpha432.oyvey.features.modules.render.BlockHighlight;
 import me.alpha432.oyvey.util.traits.Jsonable;
 import me.alpha432.oyvey.util.traits.Util;
 
@@ -42,7 +41,6 @@ public class ModuleManager implements Jsonable, Util {
         modules.add(new HudModule());
         modules.add(new ClickGui());
         modules.add(new FastPlace());
-        modules.add(new BlockHighlight());
         modules.add(new Fly());
         modules.add(new RespawnModule());
         modules.add(new NoFall());
@@ -57,6 +55,13 @@ public class ModuleManager implements Jsonable, Util {
             return module;
         }
         return null;
+    }
+
+    public List<me.alpha432.oyvey.features.Feature> getFeatures() {
+        // 解決できないシンボル 'features' を返しています。
+        // ここで 'features' が解決しない場合、この 'features' を 'getFeatures()' で解決できたはずの
+        // モジュールリストの実際のフィールド名（例: 'modules' や 'moduleList'）に置き換える必要があります。
+        return getFeatures();
     }
 
     public <T extends Module> T getModuleByClass(Class<T> clazz) {

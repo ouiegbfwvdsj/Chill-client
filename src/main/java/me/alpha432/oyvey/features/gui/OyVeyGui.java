@@ -4,7 +4,6 @@ import me.alpha432.oyvey.OyVey;
 import me.alpha432.oyvey.features.Feature;
 import me.alpha432.oyvey.features.gui.items.Item;
 import me.alpha432.oyvey.features.gui.items.buttons.ModuleButton;
-import me.alpha432.oyvey.features.modules.Module;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;

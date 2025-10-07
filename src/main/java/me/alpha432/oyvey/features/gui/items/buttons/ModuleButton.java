@@ -2,7 +2,6 @@ package me.alpha432.oyvey.features.gui.items.buttons;
 
 import me.alpha432.oyvey.features.gui.Component;
 import me.alpha432.oyvey.features.gui.items.Item;
-import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.settings.Bind;
 import me.alpha432.oyvey.features.settings.Setting;
 import net.minecraft.client.gui.DrawContext;

@@ -10,7 +10,6 @@ import me.alpha432.oyvey.util.models.Timer;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
 import net.minecraft.util.Formatting;
-import me.alpha432.oyvey.features.modules.Module;
 
 //import static com.sun.jna.platform.win32.Kernel32Util.getModules;
 

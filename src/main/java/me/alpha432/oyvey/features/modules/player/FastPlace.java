@@ -1,6 +1,5 @@
 package me.alpha432.oyvey.features.modules.player;
 
-import me.alpha432.oyvey.features.modules.Module;
 import net.minecraft.item.Items;
 
 public class FastPlace extends Module {

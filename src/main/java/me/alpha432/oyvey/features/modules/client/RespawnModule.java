@@ -1,8 +1,7 @@
 package me.alpha432.oyvey.features.modules.client;
 
-import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.OyVey; // クライアントのメインクラス（モジュールマネージャーにアクセスするため）
-import me.alpha432.oyvey.event.impl.ClientEvent; // 使用しているイベントシステムに合わせる
+
 
 // 他のインポートが必要な場合は追加
 

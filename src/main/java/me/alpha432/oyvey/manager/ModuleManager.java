@@ -3,7 +3,6 @@ package me.alpha432.oyvey.manager;
 // OyVey Core Imports
 import me.alpha432.oyvey.OyVey;
 import me.alpha432.oyvey.features.Feature;
-import me.alpha432.oyvey.features.modules.Module;
 import me.alpha432.oyvey.features.modules.client.ClickGui;
 import me.alpha432.oyvey.features.modules.client.HudModule;
 import me.alpha432.oyvey.features.modules.player.FastPlace;
